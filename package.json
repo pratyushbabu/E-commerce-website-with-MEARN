@@ -1,0 +1,17 @@
+{
+  "name": "shophive-ecommerce",
+  "version": "1.0.0",
+  "description": "Multi-vendor MERN eCommerce with real-time features",
+  "scripts": {
+    "install-all": "npm install --prefix backend && npm install --prefix frontend",
+    "seed": "cd backend && node seed.js",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm start --prefix frontend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "start:backend": "npm start --prefix backend",
+    "start:frontend": "npm start --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
