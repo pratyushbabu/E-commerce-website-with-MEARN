@@ -3,6 +3,45 @@ const User = require('../models/User');
 const { Notification } = require('../models/index');
 const cloudinary = require('../config/cloudinary');
 
+const parseJsonIfPossible = (value) => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (!['[', '{', '"'].includes(trimmed[0])) return value;
+  try {
+    return JSON.parse(trimmed);
+  } catch (_) {
+    return value;
+  }
+};
+
+const normalizeTags = (value) => {
+  const parsed = parseJsonIfPossible(value);
+  if (Array.isArray(parsed)) {
+    return parsed.map(tag => String(tag).trim()).filter(Boolean);
+  }
+  if (typeof parsed === 'string') {
+    return parsed
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
+const normalizeSpecifications = (value) => {
+  const parsed = parseJsonIfPossible(value);
+  if (Array.isArray(parsed)) {
+    return parsed
+      .map(item => ({
+        key: String(item?.key || '').trim(),
+        value: String(item?.value || '').trim(),
+      }))
+      .filter(item => item.key || item.value);
+  }
+  return [];
+};
+
 // Helper: get IDs of all blocked sellers (cached per-request)
 const getBlockedSellerIds = async () => {
   const blocked = await User.find({ role: 'seller', isBlocked: true }).select('_id');
@@ -92,7 +131,20 @@ exports.getProduct = async (req, res) => {
 
 // @POST /api/products - Seller only
 exports.createProduct = async (req, res) => {
-  const { name, description, price, discountPrice, category, subcategory, brand, stock, tags, specifications } = req.body;
+  const {
+    name,
+    description,
+    price,
+    discountPrice,
+    quantity,
+    uom,
+    category,
+    subcategory,
+    brand,
+    stock,
+    tags,
+    specifications,
+  } = req.body;
   const images = [];
 
   if (req.files && req.files.length > 0) {
@@ -103,9 +155,9 @@ exports.createProduct = async (req, res) => {
   }
 
   const product = await Product.create({
-    name, description, price, discountPrice, category, subcategory, brand, stock,
-    tags: tags ? JSON.parse(tags) : [],
-    specifications: specifications ? JSON.parse(specifications) : [],
+    name, description, price, discountPrice, quantity, uom, category, subcategory, brand, stock,
+    tags: normalizeTags(tags),
+    specifications: normalizeSpecifications(specifications),
     images,
     seller: req.user._id,
     isApproved: false,
@@ -126,8 +178,8 @@ exports.updateProduct = async (req, res) => {
   }
 
   const updates = { ...req.body };
-  if (updates.tags && typeof updates.tags === 'string') updates.tags = JSON.parse(updates.tags);
-  if (updates.specifications && typeof updates.specifications === 'string') updates.specifications = JSON.parse(updates.specifications);
+  if (Object.prototype.hasOwnProperty.call(updates, 'tags')) updates.tags = normalizeTags(updates.tags);
+  if (Object.prototype.hasOwnProperty.call(updates, 'specifications')) updates.specifications = normalizeSpecifications(updates.specifications);
 
   if (req.files && req.files.length > 0) {
     const newImages = [];
