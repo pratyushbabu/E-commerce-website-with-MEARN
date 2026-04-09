@@ -32,6 +32,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+app.get('/', (_req, res) => {
+  res.json({ success: true, message: 'ShopHive backend is running' });
+});
+
+app.get('/api/health', (_req, res) => {
+  res.json({ success: true, status: 'ok' });
+});
+
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
